@@ -1,0 +1,28 @@
+addpath('C:\Users\junsl\OneDrive\Desktop\Desktop\academics\UBC\2021\BMEG 591D\Assignment\A4_DecisionSupport\matlab_example');
+folder1 = 'C:\Users\junsl\OneDrive\Desktop\Desktop\academics\UBC\2021\BMEG 591D\Assignment\A4_DecisionSupport\testing_2021-11-15';
+folder2 = 'C:\Users\junsl\OneDrive\Desktop\Desktop\academics\UBC\2021\BMEG 591D\Assignment\A4_DecisionSupport\modTesting';
+
+cd(folder1);
+files   = (dir('*.csv'));
+fnames  = {files.name}';
+
+for i = 1:length(fnames)
+    cd(folder1);
+    
+    fn = fnames{i};
+    fid = fopen(fn);    
+
+    data = readtable(fn);
+    
+    vitalSign = data(:,2:8);
+    labVal = data(:,9:21);
+    demographics_2 = data(:,1);
+    demographics = data(:,22:23);
+    outcome = data(:,24);
+
+    modFile = [vitalSign labVal demographics_2 demographics outcome];
+    
+    cd(folder2);
+    writetable(modFile,['mod_',fn(1:end-4),'.csv'])
+    
+end
