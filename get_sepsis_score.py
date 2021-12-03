@@ -44,7 +44,7 @@ def get_sepsis_score(data, model):
     score = model.predict_proba(X)[-1][1]
 
     # Set default threshold
-    label = score > 0.023
+    label = score > 0.10
 
     return score, label
 
@@ -52,10 +52,13 @@ def load_sepsis_model():
     # Comment out on the one that you want to run
 
     # Logistic Regression
-    return pickle.load(open("./models/logreg_pipeline.pkl", "rb"))
+    #return pickle.load(open("./models/logreg_pipeline.pkl", "rb"))
 
     # # SVC
     # return pickle.load(open("./models/svc_pipeline.pkl", "rb"))
 
     # # MLP
     # return pickle.load(open("./models/mlp_pipeline.pkl", "rb"))
+
+    #GBM 
+    return pickle.load(open("./models/gbm_pipeline.pkl", "rb"))

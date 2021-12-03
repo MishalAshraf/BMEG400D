@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import GradientBoostingClassifier
 
 # from keras.wrappers.scikit_learn import KerasClassifier
 # from keras import regularizers
@@ -134,6 +135,17 @@ def create_SVCpipeline():
 
     return pipeline
 
+def create_GBMpipeline():
+    print("Creating GBM pipeline ...")
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('gbm', GradientBoostingClassifier(
+            ))
+        ])
+
+    return pipeline
+
+
 def create_MLPpipeline():
     print("Creating MLP Pipeline ...")
     pipeline = Pipeline([
@@ -198,18 +210,22 @@ if __name__ == "__main__":
     X_train, y_train = split_sepsis(data_train)
     X_test, y_test = split_sepsis(data_test)
 
-    pipe_LR = create_LRpipeline()
-    fit_model(pipe_LR, X_train, y_train, "logreg_pipeline.pkl")
-    evaluate_model(pipe_LR, X_test, y_test)
+    #pipe_LR = create_LRpipeline()
+    #fit_model(pipe_LR, X_train, y_train, "logreg_pipeline.pkl")
+    #evaluate_model(pipe_LR, X_test, y_test)
 
-    # pipe_SVC = create_SVCpipeline()
-    # fit_model(pipe_SVC, X_train, y_train, "svc_pipeline.pkl")
-    # evaluate_model(pipe_SVC, X_test, y_test)
+    #pipe_SVC = create_SVCpipeline()
+    #fit_model(pipe_SVC, X_train, y_train, "svc_pipeline.pkl")
+    #evaluate_model(pipe_SVC, X_test, y_test)
 
-    pipe_MLP = create_MLPpipeline()
-    fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
-    evaluate_model(pipe_MLP, X_test, y_test)
+    #pipe_MLP = create_MLPpipeline()
+    #fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
+    #evaluate_model(pipe_MLP, X_test, y_test)
 
     # pipe_lstm = create_LSTMpipeline()
     # fit_model(pipe_lstm, X_train_ts, y_train_ts, "lstm_pipeline.pkl")
     # evaluate_model(pipe_lstm, X_test_ts, y_test_ts)
+
+    pipe_GBM = create_GBMpipeline()
+    fit_model(pipe_GBM, X_train, y_train, "gbm_pipeline.pkl")
+    evaluate_model(pipe_GBM, X_test, y_test)
