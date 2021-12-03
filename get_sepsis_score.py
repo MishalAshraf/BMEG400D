@@ -32,7 +32,7 @@ def get_sepsis_score(data, model):
         "Sex"]
 
     # Convert to last row only to pandas data frame
-    X = pd.DataFrame([data[-1]], columns=headers)
+    X = pd.DataFrame(data, columns=headers)
 
     # Forward fill
     X = X.ffill()
@@ -52,10 +52,10 @@ def load_sepsis_model():
     # Comment out on the one that you want to run
 
     # Logistic Regression
-    return pickle.load(open("logreg_pipeline.pkl", "rb"))
+    return pickle.load(open("./models/logreg_pipeline.pkl", "rb"))
 
     # # SVC
-    # return pickle.load(open("svc_pipeline.pkl", "rb"))
+    # return pickle.load(open("./models/svc_pipeline.pkl", "rb"))
 
     # # MLP
-    # return pickle.load(open("mlp_pipeline.pkl", "rb"))
+    # return pickle.load(open("./models/mlp_pipeline.pkl", "rb"))

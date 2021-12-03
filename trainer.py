@@ -202,9 +202,9 @@ if __name__ == "__main__":
     fit_model(pipe_LR, X_train, y_train, "logreg_pipeline.pkl")
     evaluate_model(pipe_LR, X_test, y_test)
 
-    pipe_SVC = create_SVCpipeline()
-    fit_model(pipe_SVC, X_train, y_train, "svc_pipeline.pkl")
-    evaluate_model(pipe_SVC, X_test, y_test)
+    # pipe_SVC = create_SVCpipeline()
+    # fit_model(pipe_SVC, X_train, y_train, "svc_pipeline.pkl")
+    # evaluate_model(pipe_SVC, X_test, y_test)
 
     pipe_MLP = create_MLPpipeline()
     fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
