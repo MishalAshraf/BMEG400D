@@ -197,6 +197,38 @@ def evaluate_model(model, X, y):
     print(f"Accuracy: {score}")
 
 
+#Creates an array of all the training data csv filenames
+def load(mypath):
+    filenames = next(walk(mypath), (None, None, []))[2]  # [] if no file
+    return filenames
+
+## Taken from Sample Code
+# This method adds rows sequentially to a central dataframe. 
+def load_challenge_data(file,step_array):
+    with open(file, 'r') as f:
+        header = f.readline().strip()
+        column_names = header.split(',')
+        data = np.loadtxt(f, delimiter=',')
+        for i in range(0,len(data)):
+            if i == 0 and (len(step_array) == 1):
+                step_array[len(step_array) - 1] = data[i]
+            else:
+                step_array = np.vstack([step_array, data[i]])
+            # DO Something with step_array. Step array will grow, one row at a time, untill all training data
+            # csv's are added
+    return data
+
+# Does a step wise ladder through the training data
+# Each row is added in load_challenge_data method
+def step_wise_loader():
+    step_array = np.ndarray((1,24))
+    filenames = load(TRAINING_FOLDER)
+    for i in range (0,len(filenames)):
+        print(filenames[i])
+        input_file = os.path.join(TRAINING_FOLDER, filenames[i])
+        step_array = load_challenge_data(input_file,step_array)
+
+        
 if __name__ == "__main__":
     # X_train_ts, y_train_ts = load_timeseries_data(TRAINING_FOLDER)
     # X_test_ts, y_test_ts = load_timeseries_data(TEST_FOLDER)
