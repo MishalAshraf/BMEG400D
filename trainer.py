@@ -16,38 +16,91 @@ import numpy as np
 import pandas as pd
 import os
 import pickle
+from tqdm import tqdm
 
 
 TRAINING_FOLDER = "../training_2021-11-15"
 TEST_FOLDER = "../testing_2021-11-15"
 MODEL_FOLDER = "./models"
 
-def load_data(folder):
-    print(f"Loading data from {folder} ...")
 
+# Data loading helpers
+def list_files(folder):
     # Get all files in folder
     files = []
     for f in os.listdir(folder):
         if os.path.isfile(os.path.join(folder, f)) and not f.lower().startswith('.') and f.lower().endswith('csv'):
             files.append(os.path.join(folder, f))
+    return files 
 
-    # Load all data from files
-    temp = []
-    for file in files:
-        df = pd.read_csv(file, index_col=None, header=0)
+def load_data_all(file):
+    header = data = None
+    with open(file, 'r') as f:
+        header = f.readline().strip()
+        column_names = header.split(',')
+        data = np.loadtxt(f, delimiter=',')
 
-        # Forward fill
-        df = df.ffill()
+    return column_names, data
 
-        temp.append(df)
+def load_data_stepiter(file):
+    column_names, data = load_data_all(file)
+    i = 1
+    while i <= len(data):
+        yield column_names, data[:i]
+        i += 1
 
-    # Merge all data into one DataFrame
-    df = pd.concat(temp, axis=0, ignore_index=True)
 
-    # Replace remaining NaNs with 0
-    df = df.fillna(0)
+# Preprocessing helpers
+def ffill(data, fill=0, inplace=False):
+    """
+    From https://stackoverflow.com/questions/62038693/numpy-fill-nan-with-values-from-previous-row
+    """
+    if inplace:
+        arr = data
+    else:
+        arr = np.copy(data)
+
+    mask = np.isnan(arr[0])
+    arr[0][mask] = fill
+    for i in range(1, len(arr)):
+        mask = np.isnan(arr[i])
+        arr[i][mask] = arr[i - 1][mask]
     
-    return df
+    return arr
+
+def zero_fill(data):
+    return np.nan_to_num(data)
+
+
+def preprocess(data):
+    return ffill(data)
+
+
+# Data loading functions
+def load_data(folder):
+    files = list_files(folder)
+
+    column_names = []
+    data = []
+    for file in tqdm(files, desc=f"Loading and preprocessing data from {folder} ..."):
+        for h, d in load_data_stepiter(file):
+            column_names = h
+            data.append(preprocess(d))
+
+    data = np.concatenate(data, axis=0)
+
+    return column_names, data
+
+def split_sepsis(column_names, data):
+    
+    if column_names[-1] =='SepsisLabel':
+        X = data[:, :-1]
+        y = data[:, -1]
+
+        return X, y
+    else:
+        return data, None
+
 
 # def normalize_values(x):
 #     x_mean = np.array([
@@ -105,12 +158,6 @@ def load_data(folder):
 #     return np.array(Xs), np.array(ys)
 
 
-def split_sepsis(dataframe):
-    X = dataframe.drop(columns="SepsisLabel")
-    y = dataframe["SepsisLabel"]
-
-    return X, y
-
 def create_LRpipeline():
     print("Creating Logistic Regression pipeline ...")
     pipeline = Pipeline([
@@ -127,7 +174,7 @@ def create_SVCpipeline():
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('svc', SVC(
-            kernel="linear",
+            kernel="rbf",
             probability=True,
             verbose=True))
         ])
@@ -189,14 +236,14 @@ if __name__ == "__main__":
     # X_train_ts, y_train_ts = load_timeseries_data(TRAINING_FOLDER)
     # X_test_ts, y_test_ts = load_timeseries_data(TEST_FOLDER)
 
-    data_train = load_data(TRAINING_FOLDER)
-    data_test = load_data(TEST_FOLDER)
+    cnames_train, data_train = load_data(TRAINING_FOLDER)
+    cnames_test, data_test = load_data(TEST_FOLDER)
 
     if not os.path.isdir(MODEL_FOLDER):
         os.mkdir(MODEL_FOLDER)
     
-    X_train, y_train = split_sepsis(data_train)
-    X_test, y_test = split_sepsis(data_test)
+    X_train, y_train = split_sepsis(cnames_train, data_train)
+    X_test, y_test = split_sepsis(cnames_test, data_test)
 
     pipe_LR = create_LRpipeline()
     fit_model(pipe_LR, X_train, y_train, "logreg_pipeline.pkl")
@@ -206,9 +253,9 @@ if __name__ == "__main__":
     # fit_model(pipe_SVC, X_train, y_train, "svc_pipeline.pkl")
     # evaluate_model(pipe_SVC, X_test, y_test)
 
-    pipe_MLP = create_MLPpipeline()
-    fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
-    evaluate_model(pipe_MLP, X_test, y_test)
+    # pipe_MLP = create_MLPpipeline()
+    # fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
+    # evaluate_model(pipe_MLP, X_test, y_test)
 
     # pipe_lstm = create_LSTMpipeline()
     # fit_model(pipe_lstm, X_train_ts, y_train_ts, "lstm_pipeline.pkl")
