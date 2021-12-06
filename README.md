@@ -10,8 +10,7 @@ conda activate bmeg400d
 ```
 3. Install necessary dependencies
 ```
-conda install numpy pandas scikit-learn
-pip install keras tensorflow
+conda install numpy pandas scikit-learn tqdm
 ```
 
 ## Python Execution

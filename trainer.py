@@ -14,7 +14,6 @@ from sklearn.ensemble import GradientBoostingClassifier
 # from keras.layers import Dense, Bidirectional, LSTM, BatchNormalization
 
 import numpy as np
-import pandas as pd
 import os
 import pickle
 from tqdm import tqdm
