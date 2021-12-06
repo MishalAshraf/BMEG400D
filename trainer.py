@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import GradientBoostingClassifier
 
 # from keras.wrappers.scikit_learn import KerasClassifier
 # from keras import regularizers
@@ -18,6 +19,7 @@ import os
 import pickle
 from tqdm import tqdm
 
+from preprocessing import preprocess
 
 TRAINING_FOLDER = "../training_2021-11-15"
 TEST_FOLDER = "../testing_2021-11-15"
@@ -50,46 +52,21 @@ def load_data_stepiter(file):
         i += 1
 
 
-# Preprocessing helpers
-def ffill(data, fill=0, inplace=False):
-    """
-    From https://stackoverflow.com/questions/62038693/numpy-fill-nan-with-values-from-previous-row
-    """
-    if inplace:
-        arr = data
-    else:
-        arr = np.copy(data)
-
-    mask = np.isnan(arr[0])
-    arr[0][mask] = fill
-    for i in range(1, len(arr)):
-        mask = np.isnan(arr[i])
-        arr[i][mask] = arr[i - 1][mask]
-    
-    return arr
-
-def zero_fill(data):
-    return np.nan_to_num(data)
-
-
-def preprocess(data):
-    return ffill(data)
-
-
 # Data loading functions
 def load_data(folder):
     files = list_files(folder)
 
     column_names = []
-    data = []
+    Xs = []
+    ys = []
     for file in tqdm(files, desc=f"Loading and preprocessing data from {folder} ..."):
         for h, d in load_data_stepiter(file):
             column_names = h
-            data.append(preprocess(d))
+            X, y = split_sepsis(h, d)
+            Xs.append(preprocess(X))
+            ys.append(y[-1])
 
-    data = np.concatenate(data, axis=0)
-
-    return column_names, data
+    return column_names, np.array(Xs), np.array(ys)
 
 def split_sepsis(column_names, data):
     
@@ -102,61 +79,7 @@ def split_sepsis(column_names, data):
         return data, None
 
 
-# def normalize_values(x):
-#     x_mean = np.array([
-# 23.37, 84.97, 97.09, 36.86, 122.66, 81.97, 63.35, 
-# 18.86, 0.49, 7.38, 41.16, 22.92, 7.79, 1.54, 131.05, 2.04, 4.13, 
-# 31.14, 10.37, 11.23, 197.32, 62.65,0])
-#     x_std = np.array([
-# 19.2, 16.74, 2.98, 
-# 0.71, 23.28, 16.33, 14.05, 5.09, 0.33, 0.06, 8.78, 17.89, 2.12, 
-# 1.91, 46.41, 0.35, 0.59, 5.56, 1.95, 7.55, 101.61, 15.91,1])
-
-#     x_norm = np.nan_to_num((x - x_mean) / x_std)
-#     x_norm = np.array(x_norm)
-#     x_norm = x_norm.reshape(-1,23)
-
-#     return x_norm
-
-# def load_timeseries_data(folder, horizon=3):
-#     print(f"Loading time series data from {folder} with a {horizon} step horizon...")
-
-#     # Get all files in folder
-#     files = []
-#     for f in os.listdir(folder):
-#         if os.path.isfile(os.path.join(folder, f)) and not f.lower().startswith('.') and f.lower().endswith('csv'):
-#             files.append(os.path.join(folder, f))
-
-#     # Load all data from files
-#     Xs = []
-#     ys = []
-#     for i, file in enumerate(files):
-#         df = pd.read_csv(file, index_col=None, header=0)
-
-#         # Forward fill
-#         df = df.ffill()
-
-#         # Split X and y
-#         X = df.drop(columns="SepsisLabel")
-#         y = df["SepsisLabel"]
-
-#         # Shift data values down by horizon
-#         X = X.reindex(list(range(0, X.shape[0]+horizon))).reset_index(drop=True)
-#         X = X.shift(horizon)
-
-#         # Replace remaining NaNs with 0
-#         X = X.fillna(0)
-
-#         # Create a data series for each row by selecting it and its previous n rows of data
-#         #   where n = horizon
-#         for i in range(y.shape[0]):
-#             x = X.iloc[i:i+horizon+1].values
-#             x = normalize_values(x)
-#             Xs.append(x)
-#             ys.append(y[i])
-    
-#     return np.array(Xs), np.array(ys)
-
+# Models
 
 def create_LRpipeline():
     print("Creating Logistic Regression pipeline ...")
@@ -181,6 +104,17 @@ def create_SVCpipeline():
 
     return pipeline
 
+def create_GBMpipeline():
+    print("Creating GBM pipeline ...")
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('gbm', GradientBoostingClassifier(
+            ))
+        ])
+
+    return pipeline
+
+
 def create_MLPpipeline():
     print("Creating MLP Pipeline ...")
     pipeline = Pipeline([
@@ -194,29 +128,8 @@ def create_MLPpipeline():
         ])
     return pipeline
 
-# def create_LSTM():
-#     model = Sequential()
-#     model.add(Bidirectional(LSTM(64,
-#         kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4),
-#         dropout=0.3
-#         )))
-#     model.add(BatchNormalization())
-#     model.add(Dense(1, activation='sigmoid'))
-#     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-#     return model
-
-# def create_LSTMpipeline():
-#     print("Creating LSTM Pipeline ...")
-#     pipeline = Pipeline([
-#         #('scaler', StandardScaler()),
-#         ('lstm', KerasClassifier(
-#             build_fn=create_LSTM,
-#             epochs=20,
-#             batch_size=64,
-#             verbose=True))
-#         ])
-#     return pipeline
+# Trainers and Testers
 
 def fit_model(model, X, y, outfile):
     print("Training model ...")
@@ -232,18 +145,17 @@ def evaluate_model(model, X, y):
     print(f"Accuracy: {score}")
 
 
+        
 if __name__ == "__main__":
-    # X_train_ts, y_train_ts = load_timeseries_data(TRAINING_FOLDER)
-    # X_test_ts, y_test_ts = load_timeseries_data(TEST_FOLDER)
 
-    cnames_train, data_train = load_data(TRAINING_FOLDER)
-    cnames_test, data_test = load_data(TEST_FOLDER)
+    cnames_train, X_train, y_train = load_data(TRAINING_FOLDER)
+    cnames_test, X_test, y_test = load_data(TEST_FOLDER)
 
     if not os.path.isdir(MODEL_FOLDER):
         os.mkdir(MODEL_FOLDER)
-    
-    X_train, y_train = split_sepsis(cnames_train, data_train)
-    X_test, y_test = split_sepsis(cnames_test, data_test)
+
+    print(X_train.shape)
+    print(y_train.shape)
 
     pipe_LR = create_LRpipeline()
     fit_model(pipe_LR, X_train, y_train, "logreg_pipeline.pkl")
@@ -257,6 +169,6 @@ if __name__ == "__main__":
     # fit_model(pipe_MLP, X_train, y_train, "mlp_pipeline.pkl")
     # evaluate_model(pipe_MLP, X_test, y_test)
 
-    # pipe_lstm = create_LSTMpipeline()
-    # fit_model(pipe_lstm, X_train_ts, y_train_ts, "lstm_pipeline.pkl")
-    # evaluate_model(pipe_lstm, X_test_ts, y_test_ts)
+    pipe_GBM = create_GBMpipeline()
+    fit_model(pipe_GBM, X_train, y_train, "gbm_pipeline.pkl")
+    evaluate_model(pipe_GBM, X_test, y_test)
