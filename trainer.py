@@ -108,6 +108,7 @@ def create_GBMpipeline():
     pipeline = Pipeline([
         ('scaler', StandardScaler()),
         ('gbm', GradientBoostingClassifier(
+            loss='exponential'
             ))
         ])
 
@@ -148,6 +149,10 @@ def evaluate_model(model, X, y):
 if __name__ == "__main__":
 
     cnames_train, X_train, y_train = load_data(TRAINING_FOLDER)
+    np.savetxt("X_train_zeros.csv", X_train, delimiter=",")
+    np.savetxt("y_train_zeros.csv", y_train, delimiter=",")
+
+
     cnames_test, X_test, y_test = load_data(TEST_FOLDER)
 
     if not os.path.isdir(MODEL_FOLDER):

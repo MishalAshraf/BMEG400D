@@ -13,7 +13,7 @@ def get_sepsis_score(data, model):
     score = model.predict_proba(preprocessed)[-1][1]
 
     # Set default threshold
-    label = score > 0.10
+    label = score > 0.030
 
     return score, label
 
