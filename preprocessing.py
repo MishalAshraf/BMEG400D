@@ -31,7 +31,7 @@ def preprocess(data):
     mean_features = np.mean(get_n_hour_window(d, 6), axis=0)
     std_features = np.std(get_n_hour_window(d, 6), axis=0)
 
-    d_ffill = ffill(d)
+    d_ffill = ffill(data)
     last_row = d_ffill[-1]
 
     preprocessed = np.concatenate(
